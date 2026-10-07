@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SANJARA TKA — Generator Soal Ujian</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">ST</div>
+        <div>
+          <strong>SANJARA TKA</strong>
+          <span>Assessment Studio</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="generator">✦ Generator Soal</button>
+        <button class="nav-item" data-view="preview">▤ Paket Ujian</button>
+        <button class="nav-item" data-view="blueprint">⌗ Kisi-kisi</button>
+        <button class="nav-item" data-view="bank">◫ Bank Soal</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <div class="eyebrow">MODE</div>
+        <strong id="modeLabel">TKA SMP Resmi</strong>
+        <p>Berbasis stimulus, penerapan, penalaran, dan pemecahan masalah.</p>
+      </div>
+
+      <div class="sidebar-footer">
+        <small>SMP SSA Negeri Jenggrong Ranuyoso</small>
+        <span class="status-dot"></span> Siap digunakan offline
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">GENERATOR ASESMEN</div>
+          <h1>Buat paket ujian bergaya TKA dalam hitungan detik.</h1>
+          <p class="lead">Atur mapel, materi, komposisi soal, dan tingkat kognitif. Sistem menyiapkan soal, kunci, pembahasan, serta kisi-kisi.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn secondary" id="saveBankBtn">Simpan ke Bank</button>
+          <button class="btn primary" id="generateBtn">Generate Soal</button>
+        </div>
+      </header>
+
+      <section id="generator" class="view active">
+        <div class="grid two">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">1. KONFIGURASI</div>
+                <h2>Pengaturan Ujian</h2>
+              </div>
+              <span class="pill">TKA-ready</span>
+            </div>
+
+            <div class="form-grid">
+              <label>
+                Mode generator
+                <select id="mode">
+                  <option value="official">TKA SMP Resmi</option>
+                  <option value="school">Ujian Sekolah Bergaya TKA</option>
+                </select>
+              </label>
+
+              <label>
+                Mata pelajaran
+                <select id="subject"></select>
+              </label>
+
+              <label>
+                Kelas
+                <select id="grade">
+                  <option value="7">VII</option>
+                  <option value="8">VIII</option>
+                  <option value="9" selected>IX</option>
+                </select>
+              </label>
+
+              <label>
+                Referensi materi (opsional)
+                <select id="topic"></select>
+              </label>
+
+              <label>
+                Jumlah soal
+                <input id="count" type="number" min="5" max="50" value="20" />
+              </label>
+
+              <label>
+                Tingkat kesulitan
+                <select id="difficulty">
+                  <option value="balanced">Seimbang</option>
+                  <option value="easy">Dominan mudah</option>
+                  <option value="medium">Dominan sedang</option>
+                  <option value="hard">Dominan menantang</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="curriculum-custom">
+              <label for="customTP">
+                5. Indikator Soal / Capaian Pembelajaran / Tujuan Pembelajaran <span class="required-star">*</span>
+                <textarea id="customTP" rows="5" placeholder="Tempel CP, TP, atau indikator soal di sini. Tulis satu butir per baris. Contoh:&#10;Peserta didik dapat menganalisis hubungan antar makhluk hidup dalam rantai makanan.&#10;Peserta didik mampu menjelaskan dampak perubahan populasi terhadap keseimbangan ekosistem."></textarea>
+              </label>
+              <small>Setiap baris akan dipetakan bergiliran ke nomor soal dan ditampilkan pada kisi-kisi.</small>
+
+              <label for="customTopic">
+                6. Topik / Materi Spesifik <span class="required-star">*</span>
+                <input type="text" id="customTopic" maxlength="180" placeholder="Contoh: Ekosistem dan Rantai Makanan" />
+              </label>
+              <small>Pilih referensi materi di atas untuk mengisi cepat, lalu materi ini tetap bisa diedit bebas.</small>
+
+              <label class="checkbox-label"><input id="printTP" type="checkbox" checked /> Cantumkan CP/TP pada cetak soal dan Word</label>
+              <p class="curriculum-warning">Catatan: versi offline memakai mesin template soal. CP/TP dan materi custom akan masuk ke kisi-kisi, metadata, cetak, dan paket soal; kesesuaian isi soal tetap perlu diverifikasi guru.</p>
+            </div>
+
+            <div class="divider"></div>
+            <div class="eyebrow">KOMPOSISI BENTUK SOAL</div>
+            <div class="mix-grid">
+              <label>PG Sederhana <input id="mixPg" type="range" min="0" max="100" value="50"><b id="mixPgVal">50%</b></label>
+              <label>PG Kompleks (MCMA) <input id="mixMcma" type="range" min="0" max="100" value="30"><b id="mixMcmaVal">30%</b></label>
+              <label>PG Kompleks Kategori <input id="mixCat" type="range" min="0" max="100" value="20"><b id="mixCatVal">20%</b></label>
+            </div>
+            <p class="hint">Komposisi otomatis dinormalisasi saat soal dibuat.</p>
+
+            <div class="divider"></div>
+            <div class="eyebrow">KONTEKS STIMULUS</div>
+            <div class="chip-wrap" id="contextChips">
+              <button class="chip selected" data-context="lokal">Lingkungan lokal</button>
+              <button class="chip selected" data-context="sekolah">Sekolah</button>
+              <button class="chip selected" data-context="keluarga">Keluarga</button>
+              <button class="chip" data-context="sains">Sains & teknologi</button>
+              <button class="chip" data-context="ekonomi">Ekonomi</button>
+            </div>
+
+            <div class="divider"></div>
+            <div class="eyebrow">KOP CETAK SOAL</div>
+            <div class="kop-controls">
+              <label>
+                Mode kop
+                <select id="kopMode">
+                  <option value="default">Kop sekolah default</option>
+                  <option value="custom">Custom upload</option>
+                  <option value="none">Tanpa kop</option>
+                </select>
+              </label>
+              <label class="btn secondary file-btn">Upload kop<input id="kopUpload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+              <button class="btn secondary" type="button" id="resetKopBtn">Reset ke Default</button>
+            </div>
+            <div class="kop-preview-card">
+              <div class="small-note">Kop akan tampil di preview paket, saat dicetak/PDF, dan saat export Word.</div>
+              <div class="kop-preview-wrap" id="kopPreviewWrap">
+                <img id="kopPreviewImg" alt="Preview kop soal" />
+                <div id="kopPreviewEmpty" class="kop-empty">Kop dinonaktifkan.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel accent">
+            <div class="panel-head">
+              <div>
+                <div class="eyebrow">2. TARGET KOGNITIF</div>
+                <h2>Profil Soal</h2>
+              </div>
+            </div>
+            <div class="cognitive-cards">
+              <div class="cog-card">
+                <span>Memahami</span><strong id="cogUnderstand">30%</strong>
+                <div class="meter"><i style="width:30%"></i></div>
+                <small>Konsep, informasi eksplisit, representasi.</small>
+              </div>
+              <div class="cog-card">
+                <span>Mengaplikasikan</span><strong id="cogApply">40%</strong>
+                <div class="meter"><i style="width:40%"></i></div>
+                <small>Menggunakan konsep dalam konteks.</small>
+              </div>
+              <div class="cog-card">
+                <span>Penalaran</span><strong id="cogReason">30%</strong>
+                <div class="meter"><i style="width:30%"></i></div>
+                <small>Analisis, inferensi, strategi, evaluasi.</small>
+              </div>
+            </div>
+            <div class="info-box">
+              <strong>Standar TKA SMP</strong>
+              <p>Mode resmi membatasi mapel pada Bahasa Indonesia dan Matematika. Mode sekolah membuka mapel lain tetapi mempertahankan karakter soal berbasis stimulus dan penalaran.</p>
+            </div>
+            <button class="btn primary wide" id="generateBtn2">✦ Generate Paket Sekarang</button>
+          </div>
+        </div>
+
+        <div class="stats" id="stats">
+          <div><span>Total Soal</span><strong>0</strong></div>
+          <div><span>PG</span><strong>0</strong></div>
+          <div><span>PG Kompleks</span><strong>0</strong></div>
+          <div><span>Stimulus Grup</span><strong>0</strong></div>
+        </div>
+      </section>
+
+      <section id="preview" class="view">
+        <div class="panel">
+          <div class="panel-head sticky-head">
+            <div>
+              <div class="eyebrow">PAKET UJIAN</div>
+              <h2 id="packageTitle">Belum ada paket</h2>
+            </div>
+            <div class="action-row">
+              <button class="btn secondary" id="toggleKeyBtn">Tampilkan Kunci</button>
+              <button class="btn secondary" id="exportWordBtn">Export Word</button>
+              <button class="btn primary" id="printBtn">Cetak / PDF</button>
+            </div>
+          </div>
+          <div id="questionList" class="question-list empty-state">
+            <div class="empty-icon">✦</div>
+            <h3>Belum ada soal</h3>
+            <p>Kembali ke Generator Soal lalu klik <b>Generate Soal</b>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="blueprint" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">KISI-KISI OTOMATIS</div>
+              <h2>Blueprint Paket</h2>
+            </div>
+            <button class="btn secondary" id="exportCsvBtn">Export CSV</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>No</th><th>Tujuan Pembelajaran (TP)</th><th>Materi</th><th>Indikator Soal</th><th>Level Kognitif</th><th>Bentuk Soal</th><th>Kunci</th></tr></thead>
+              <tbody id="blueprintBody"><tr><td colspan="7" class="muted center">Belum ada data.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="bank" class="view">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">BANK SOAL LOKAL</div>
+              <h2>Paket Tersimpan</h2>
+            </div>
+            <div class="action-row">
+              <label class="btn secondary file-btn">Import JSON<input id="importJson" type="file" accept="application/json"></label>
+              <button class="btn secondary" id="exportJsonBtn">Export JSON</button>
+              <button class="btn danger" id="clearBankBtn">Kosongkan Bank</button>
+            </div>
+          </div>
+          <div id="bankList" class="bank-list"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
