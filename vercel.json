@@ -1,7 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/generate.js": { "maxDuration": 300 },
-    "api/health.js": { "maxDuration": 30 }
+    "api/generate.js": {
+      "maxDuration": 300
+    },
+    "api/health.js": {
+      "maxDuration": 30
+    },
+    "api/sanjara-generate.js": {
+      "maxDuration": 60
+    },
+    "api/sanjara-health.js": {
+      "maxDuration": 10
+    }
   }
 }
