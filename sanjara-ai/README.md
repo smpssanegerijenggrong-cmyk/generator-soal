@@ -1,23 +1,27 @@
 # SANJARA AI — Generator Kartu Soal & Naskah Ujian
 
-Aplikasi web mandiri berbasis satu file HTML. Aplikasi lama **SANJARA TKA** pada root repository sengaja tidak ditimpa.
+Aplikasi baru ini berada di `sanjara-ai/index.html` dan **tidak mengganti** frontend lama `index.html` maupun endpoint lama `/api/generate`.
 
-## Akses
+## Menjalankan di Vercel dari repository ini
 
-- Sumber aplikasi: `sanjara-ai/index.html`
-- Di Vercel dengan konfigurasi static root: buka `/sanjara-ai/index.html` pada domain proyek ini.
-- Jalankan lokal: buka `index.html` di browser, lalu gunakan tombol **Coba Demo 5 Soal**.
+Gunakan URL website proyek Vercel yang terhubung ke root repository, lalu buka `/sanjara-ai/index.html`.
 
-## Fitur
+Endpoint baru yang dipakai halaman ini:
+- `POST /api/sanjara-generate` — memanggil Google Gemini
+- `GET /api/sanjara-health` — status apakah API siap
 
-Tahap 1: kisi-kisi, kartu soal, kunci, dan rubrik. Tahap 2: naskah ujian, LJS, dan kunci guru. Mendukung materi multi-bab, unggah PDF berbasis teks, pengaturan bentuk soal, level kognitif, kop/logo, ekspor Word dan cetak/PDF.
+Atur di **Vercel → Project → Settings → Environment Variables**:
+- `GEMINI_API_KEY`: kunci API Google Gemini dari Google AI Studio (rahasia)
+- `SANJARA_ACCESS_CODE`: kode akses yang hanya diberikan kepada guru
 
-## Mengaktifkan AI
+Atur di lingkungan **Production**, kemudian lakukan **Redeploy**. Jangan menaruh nilai kunci di source code GitHub. `ALLOW_PUBLIC_GENERATION=true` bisa menghilangkan kewajiban kode akses, tetapi berisiko menghabiskan kuota Gemini bila situs publik.
 
-Dari **Pengaturan AI**, gunakan Google Gemini dengan API key pengguna atau masukkan URL backend proxy milik sekolah yang sesuai kontrak API aplikasi ini. API key yang dimasukkan secara langsung digunakan oleh browser dan hanya dipertahankan selama tab terbuka. **Jangan memasukkan API key rahasia ke kode sumber atau commit GitHub publik.**
+## Cara menggunakan
 
-Backend lama di `/api/generate` milik SANJARA TKA **tidak otomatis kompatibel** dengan mode proxy aplikasi ini; perlu adapter sebelum dapat dipakai bersama. Guru tetap perlu menelaah soal dan kunci dari AI sebelum digunakan dalam ujian.
+1. Buka `/api/sanjara-health` dari domain yang sama. Pastikan `ready`, `keyConfigured`, dan `accessConfigured` bernilai `true`.
+2. Buka `/sanjara-ai/index.html`, klik **Pengaturan AI**.
+3. Pilih **Backend Vercel**, gunakan endpoint `/api/sanjara-generate` dan kode yang sama dengan `SANJARA_ACCESS_CODE`; klik **Tes Koneksi Server**.
+4. Isi jenjang, kelas, mapel, materi, komposisi soal, lalu klik **Generate Kisi-Kisi & Kartu Soal AI**. Hasil diproses dalam batch sampai 6 soal.
+5. Periksa kunci dan indikator secara manual, lalu buat naskah, LJS, serta pedoman penskoran di Tahap 2.
 
-## Deploy Vercel
-
-Jika repo sudah terhubung dengan proyek Vercel, perubahan branch `main` biasanya memicu build otomatis. Bila belum terhubung, import repo `smpssanegerijenggrong-cmyk/generator-soal` ke Vercel; jangan membuat proyek yang menimpa proyek sekolah lain. Pilih root direktori repository, framework Other/static.
+**Mode Demo** berjalan tanpa API key, tetapi contoh soalnya bukan keluaran AI. PDF harus mengandung teks agar dapat dibaca. Jangan unggah materi rahasia atau data pribadi murid tanpa izin.
