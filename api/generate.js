@@ -160,7 +160,7 @@ function validateGenerated(data, plan, meta = {}) {
     const spec = plan[i], q = data.questions[i];
     if (Number(q?.no) !== Number(spec.no)) throw new Error('Nomor soal tidak sesuai pada posisi ' + (i + 1) + '.');
     for (const field of ['stimulus', 'question', 'explanation']) if (typeof q[field] !== 'string' || !q[field].trim()) throw new Error('Soal ' + spec.no + ': ' + field + ' wajib terisi.');
-    const questionKey = q.question.toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();
+    const questionKey = (q.stimulus + ' ' + q.question).toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();
     if (seenQuestions.has(questionKey)) throw new Error('Soal ' + spec.no + ': pertanyaan duplikat.');
     seenQuestions.add(questionKey);
     const options = Array.isArray(q.options) ? q.options : [], answers = Array.isArray(q.answers) ? q.answers : [];
