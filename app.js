@@ -763,11 +763,23 @@ async function generateOnline(meta,count){
       if(Array.isArray(d.qualityNotes))qualityNotes.push(...d.qualityNotes);
     }
     setAiBusy(true,'Memeriksa seluruh paket…','Memvalidasi TP, nomor, bentuk soal, opsi, kunci, stimulus, duplikasi, dan pembahasan.');
-    currentQuestions=normalizeAiQuestions(allRaw,plan,meta);
+    currentQuestions=validateQuestionSet(normalizeAiQuestions(allRaw,plan,meta));
     assessmentMeta={...meta,aiEngine:[...models].join(', ')||meta.aiModel,aiReviewEngine:[...reviewModels].join(', '),aiQualityNotes:qualityNotes,batchSize:batchSize,totalBatches:totalBatches};
     assessmentMeta.imagePrompts=buildImagePrompts(currentQuestions,meta);persistCurriculumDraft();renderAll();showView('preview');
     toast(count+' soal selesai diproses dalam '+totalBatches+' kelompok dan lolos validasi struktur.');
   }finally{setAiBusy(false)}
+}
+function validateQuestionSet(questions){
+  const seen=new Set();
+  questions.forEach(q=>{
+    if(!q.tp||!q.materi)throw new Error('Soal '+q.no+': pemetaan TP dan materi wajib tersedia.');
+    const key=String(q.question||'').toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+    if(seen.has(key))throw new Error('Soal '+q.no+': pertanyaan duplikat dalam satu paket.');
+    seen.add(key);
+    if(q.format==='PGK-Kategori'&&(q.answers.length<1||q.answers.length>=q.options.length))throw new Error('Soal '+q.no+': kategori harus memiliki pernyataan benar dan salah.');
+    if(['Isian','Uraian'].includes(q.format)&&!String(q.answerText||'').trim())throw new Error('Soal '+q.no+': kunci atau kriteria jawaban belum tersedia.');
+  });
+  return questions;
 }
 function buildImagePrompts(questions,meta){
   if(!meta.generateImagePrompts)return [];
