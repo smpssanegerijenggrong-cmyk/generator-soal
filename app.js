@@ -118,7 +118,7 @@ function getMaterialRows(){
   })).filter(x=>x.name||x.count);
 }
 function materialRowHtml(item={},index=0){
-  return `<div class="material-row"><div class="material-index">${index+1}</div><input class="material-name" type="text" maxlength="180" value="${escapeHtml(item.name||'')}" placeholder="Contoh: Bab ${index+1} — Ekosistem"><input class="material-count" type="number" min="0" max="50" value="${item.count||0}" title="Jumlah soal"><button type="button" class="remove-material" aria-label="Hapus materi">×</button></div>`;
+  return `<div class="material-row"><div class="material-index">${index+1}</div><input class="material-name" type="text" maxlength="180" value="${escapeHtml(item.name||'')}" placeholder="Contoh: Bab ${index+1} — Ekosistem"><input class="material-count" type="number" min="0" max="100" value="${item.count||0}" title="Jumlah soal"><button type="button" class="remove-material" aria-label="Hapus materi">×</button></div>`;
 }
 function bindMaterialRows(){
   $$('#materialRows .material-row').forEach((row,idx)=>{
@@ -148,7 +148,7 @@ function addMaterialRow(item={name:'',count:0}){
 }
 function updateMaterialDistributionStatus(){
   const el=$('#materialDistributionStatus'); if(!el)return;
-  const target=Math.max(1,Math.min(50,+$('#count')?.value||20));
+  const target=Math.max(1,Math.min(100,+$('#count')?.value||20));
   const rows=getMaterialRows().filter(x=>x.name);
   const total=rows.reduce((a,b)=>a+b.count,0);
   el.className='material-status';
@@ -160,7 +160,7 @@ function updateMaterialDistributionStatus(){
 function autoDistributeMaterials(showToast=true){
   const rows=$$('#materialRows .material-row').filter(r=>r.querySelector('.material-name')?.value.trim());
   if(!rows.length){if(showToast)toast('Isi minimal satu bab / materi terlebih dahulu');return}
-  const target=Math.max(1,Math.min(50,+$('#count').value||20));
+  const target=Math.max(1,Math.min(100,+$('#count').value||20));
   const base=Math.floor(target/rows.length), extra=target%rows.length;
   rows.forEach((row,i)=>{row.querySelector('.material-count').value=base+(i<extra?1:0)});
   updateMaterialDistributionStatus();persistCurriculumDraft();
@@ -730,7 +730,7 @@ function normalizeAiQuestions(rawQuestions,plan,meta){
   return plan.map((spec,i)=>{
     const raw=byNo.get(spec.no)||rawQuestions[i];if(!raw)throw new Error(`Soal nomor ${spec.no} tidak ditemukan.`);
     let options=Array.isArray(raw.options)?raw.options.map(x=>String(x).trim()).filter(Boolean):[];
-    let answers=Array.isArray(raw.answers)?[...new Set(raw.answers.map(Number).filter(n=>Number.isInteger(n)&&n>=0&&n<options.length))]:[];
+    const rawAnswers=Array.isArray(raw.answers)?raw.answers:[];if(rawAnswers.some(n=>!Number.isInteger(n)||n<0||n>=options.length))throw new Error('Soal '+spec.no+': indeks kunci jawaban tidak valid.');let answers=[...new Set(rawAnswers)];if(answers.length!==rawAnswers.length)throw new Error('Soal '+spec.no+': indeks kunci berulang.');if(new Set(options.map(x=>x.toLocaleLowerCase('id-ID').replace(/\\s+/g,' '))).size!==options.length)throw new Error('Soal '+spec.no+': opsi jawaban duplikat.');
     if(['PG','PGK-MCMA','PGK-Kategori'].includes(spec.format)){
       if(options.length!==meta.optionCount)throw new Error(`Soal ${spec.no}: jumlah opsi AI ${options.length}, seharusnya ${meta.optionCount}. Coba Generate ulang.`);
       if(spec.format==='PG'&&answers.length!==1)throw new Error(`Soal ${spec.no}: kunci PG tidak valid.`);
@@ -747,16 +747,26 @@ function normalizeAiQuestions(rawQuestions,plan,meta){
   });
 }
 async function generateOnline(meta,count){
-  const plan=buildAiQuestionPlan(meta,count);const code=$('#aiAccessCode')?.value||'';
-  setAiBusy(true,'AI sedang merancang paket premium…',meta.aiQuality==='max'?'Tahap 1: menyusun soal. Setelah itu model kedua akan mengaudit kualitas.':'Menyusun stimulus, soal, distraktor, kunci, dan pembahasan berdasarkan TP.');
+  const plan=buildAiQuestionPlan(meta,count),code=$('#aiAccessCode')?.value||'';
+  const batchSize=10,totalBatches=Math.ceil(plan.length/batchSize),allRaw=[],qualityNotes=[],models=new Set(),reviewModels=new Set();
+  setAiBusy(true,'AI sedang merancang paket premium…','Paket '+count+' soal diproses dalam '+totalBatches+' kelompok, maksimal '+batchSize+' soal per kelompok.');
   try{
     const headers={'Content-Type':'application/json'};if(code)headers['x-sanjara-key']=code;
-    const r=await fetch(`${AI_API_BASE}/api/generate`,{method:'POST',headers,body:JSON.stringify({meta:{...meta,examTypeLabel:resolveExamTypeLabel(meta.examType,meta.examTypeCustom)},plan,contexts:contexts(),model:meta.aiModel,quality:meta.aiQuality})});
-    let d={};try{d=await r.json()}catch{}
-    if(!r.ok||!d.ok)throw new Error(d.error||`Server AI error ${r.status}`);
-    currentQuestions=normalizeAiQuestions(d.questions,plan,meta);assessmentMeta={...meta,aiEngine:d.model||meta.aiModel,aiReviewEngine:d.reviewModel||'',aiQualityNotes:d.qualityNotes||[]};
+    for(let offset=0;offset<plan.length;offset+=batchSize){
+      const batch=plan.slice(offset,offset+batchSize),batchNo=Math.floor(offset/batchSize)+1;
+      setAiBusy(true,'Menyusun kelompok '+batchNo+'/'+totalBatches+'…','Nomor soal '+batch[0].no+'–'+batch[batch.length-1].no+'. Kelompok diperiksa sebelum digabung.');
+      const r=await fetch(AI_API_BASE+'/api/generate',{method:'POST',headers,body:JSON.stringify({meta:{...meta,examTypeLabel:resolveExamTypeLabel(meta.examType,meta.examTypeCustom)},plan:batch,contexts:contexts(),model:meta.aiModel,quality:meta.aiQuality})});
+      let d={};try{d=await r.json()}catch{}
+      if(!r.ok||!d.ok)throw new Error('Kelompok '+batchNo+' (soal '+batch[0].no+'–'+batch[batch.length-1].no+'): '+(d.error||('Server AI error '+r.status)));
+      if(!Array.isArray(d.questions)||d.questions.length!==batch.length)throw new Error('Kelompok '+batchNo+': jumlah soal AI tidak sesuai rencana.');
+      allRaw.push(...d.questions);if(d.model)models.add(d.model);if(d.reviewModel)reviewModels.add(d.reviewModel);
+      if(Array.isArray(d.qualityNotes))qualityNotes.push(...d.qualityNotes);
+    }
+    setAiBusy(true,'Memeriksa seluruh paket…','Memvalidasi TP, nomor, bentuk soal, opsi, kunci, stimulus, duplikasi, dan pembahasan.');
+    currentQuestions=normalizeAiQuestions(allRaw,plan,meta);
+    assessmentMeta={...meta,aiEngine:[...models].join(', ')||meta.aiModel,aiReviewEngine:[...reviewModels].join(', '),aiQualityNotes:qualityNotes,batchSize:batchSize,totalBatches:totalBatches};
     assessmentMeta.imagePrompts=buildImagePrompts(currentQuestions,meta);persistCurriculumDraft();renderAll();showView('preview');
-    toast(meta.aiQuality==='max'?`${count} soal Premium Max selesai & diaudit AI kedua.`:`${count} soal premium selesai dibuat oleh ${d.model||'AI'}.`);
+    toast(count+' soal selesai diproses dalam '+totalBatches+' kelompok dan lolos validasi struktur.');
   }finally{setAiBusy(false)}
 }
 function buildImagePrompts(questions,meta){
@@ -768,7 +778,7 @@ function buildImagePrompts(questions,meta){
   }));
 }
 async function generate(){
-  const count=Math.max(1,Math.min(50,+$('#count').value||20)),subject=$('#subject').value,diff=$('#difficulty').value;
+  const count=Math.max(5,Math.min(100,+$('#count').value||20)),subject=$('#subject').value,diff=$('#difficulty').value;
   if(!$('#grade').value){$('#grade').focus();toast('Pilih kelas VII, VIII, atau IX terlebih dahulu');return}
   if(!$('#examType').value){$('#examType').focus();toast('Pilih jenis ujian / asesmen terlebih dahulu');return}
   const meta=captureAssessmentMeta();
