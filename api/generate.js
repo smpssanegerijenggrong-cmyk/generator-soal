@@ -152,9 +152,33 @@ Keluarkan JSON persis dengan struktur:
 JSON saja, tanpa markdown.`;
 }
 
-function validateGenerated(data, plan) {
+function validateGenerated(data, plan, meta = {}) {
   if (!data || !Array.isArray(data.questions)) throw new Error('AI tidak mengembalikan array questions.');
-  if (data.questions.length !== plan.length) throw new Error(`AI menghasilkan ${data.questions.length} soal, seharusnya ${plan.length}.`);
+  if (data.questions.length !== plan.length) throw new Error('Jumlah soal AI tidak sesuai rencana.');
+  const seenQuestions = new Set();
+  for (let i = 0; i < plan.length; i++) {
+    const spec = plan[i], q = data.questions[i];
+    if (Number(q?.no) !== Number(spec.no)) throw new Error('Nomor soal tidak sesuai pada posisi ' + (i + 1) + '.');
+    for (const field of ['stimulus', 'question', 'explanation']) if (typeof q[field] !== 'string' || !q[field].trim()) throw new Error('Soal ' + spec.no + ': ' + field + ' wajib terisi.');
+    const questionKey = q.question.toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim();
+    if (seenQuestions.has(questionKey)) throw new Error('Soal ' + spec.no + ': pertanyaan duplikat.');
+    seenQuestions.add(questionKey);
+    const options = Array.isArray(q.options) ? q.options : [], answers = Array.isArray(q.answers) ? q.answers : [];
+    if (options.some(x => typeof x !== 'string' || !x.trim())) throw new Error('Soal ' + spec.no + ': opsi kosong/tidak valid.');
+    const normalizedOptions = options.map(x => x.toLocaleLowerCase('id-ID').replace(/\\s+/g, ' '));
+    if (new Set(normalizedOptions).size !== normalizedOptions.length) throw new Error('Soal ' + spec.no + ': opsi duplikat.');
+    if (answers.some(x => !Number.isInteger(x) || x < 0 || x >= options.length)) throw new Error('Soal ' + spec.no + ': indeks kunci tidak valid.');
+    if (new Set(answers).size !== answers.length) throw new Error('Soal ' + spec.no + ': indeks kunci berulang.');
+    if (['PG', 'PGK-MCMA', 'PGK-Kategori'].includes(spec.format)) {
+      if (options.length !== Number(meta.optionCount || 4)) throw new Error('Soal ' + spec.no + ': jumlah opsi tidak sesuai.');
+      if (spec.format === 'PG' && answers.length !== 1) throw new Error('Soal ' + spec.no + ': PG wajib memiliki tepat satu kunci.');
+      if (spec.format === 'PGK-MCMA' && answers.length < 2) throw new Error('Soal ' + spec.no + ': MCMA wajib memiliki minimal dua kunci.');
+      if (spec.format === 'PGK-Kategori' && (answers.length < 1 || answers.length >= options.length)) throw new Error('Soal ' + spec.no + ': kategori harus memiliki pernyataan benar dan salah.');
+    } else if (options.length || answers.length || !String(q.answerText || '').trim()) {
+      throw new Error('Soal ' + spec.no + ': isian/uraian wajib memiliki kriteria jawaban tanpa opsi pilihan ganda.');
+    }
+    if (!String(q.comp || q.indikator || '').trim()) throw new Error('Soal ' + spec.no + ': kompetensi/indikator wajib terisi.');
+  }
   return data;
 }
 
@@ -176,7 +200,7 @@ export default async function handler(req, res) {
     ];
 
     const generated = await callWithFallback(preferred, messages);
-    let result = validateGenerated(generated.json, plan);
+    let result = validateGenerated(generated.json, plan, body.meta || {});
     let reviewModel = '';
     let qualityNotes = Array.isArray(result.qualityNotes) ? result.qualityNotes : [];
 
@@ -188,7 +212,7 @@ export default async function handler(req, res) {
         { role: 'system', content: buildSystemPrompt() },
         { role: 'user', content: buildReviewPrompt(body, result.questions) },
       ]);
-      result = validateGenerated(reviewed.json, plan);
+      result = validateGenerated(reviewed.json, plan, body.meta || {});
       reviewModel = reviewed.model;
       qualityNotes = Array.isArray(result.qualityNotes) ? result.qualityNotes : qualityNotes;
     }
