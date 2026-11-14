@@ -773,7 +773,7 @@ function validateQuestionSet(questions){
   const seen=new Set();
   questions.forEach(q=>{
     if(!q.tp||!q.materi)throw new Error('Soal '+q.no+': pemetaan TP dan materi wajib tersedia.');
-    const key=String(q.question||'').toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
+    const key=(String(q.stimulus||'')+' '+String(q.question||'')).toLocaleLowerCase('id-ID').replace(/[^\\p{L}\\p{N}]+/gu,' ').trim();
     if(seen.has(key))throw new Error('Soal '+q.no+': pertanyaan duplikat dalam satu paket.');
     seen.add(key);
     if(q.format==='PGK-Kategori'&&(q.answers.length<1||q.answers.length>=q.options.length))throw new Error('Soal '+q.no+': kategori harus memiliki pernyataan benar dan salah.');
@@ -816,7 +816,7 @@ async function generate(){
     if(subject==='math')q=buildMath(i,builderFormat,baseLevel,engineMaterial);else if(subject==='indo')q=buildIndo(i,builderFormat,baseLevel,engineMaterial);else q=buildGeneric(subject,i,builderFormat,baseLevel,engineMaterial);
     q.topic=material;q.materi=material;q.no=i+1;q.tp=meta.tps[i%meta.tps.length];q.tpIndex=(i%meta.tps.length)+1;q.levelBase=baseLevel;q.level=taxonomyLevel(baseLevel,i,meta.taxonomy);q.indicator=buildIndicator(q,meta);ensurePgOptionCount(q,meta.optionCount);q=convertQuestionFormat(q,targetFormat);q=applyQuestionMode(q,meta);q.bentuk=formatName(q.format);q.kunci=getKey(q);q.poin=getPoint(q);newQuestions.push(q);
   }
-  currentQuestions=newQuestions;assessmentMeta={...meta,aiEngine:'Offline Template'};assessmentMeta.imagePrompts=buildImagePrompts(currentQuestions,meta);persistCurriculumDraft();renderAll();showView('preview');toast(`${count} soal dibuat dengan mode offline.`);
+  currentQuestions=validateQuestionSet(newQuestions);assessmentMeta={...meta,aiEngine:'Offline Template'};assessmentMeta.imagePrompts=buildImagePrompts(currentQuestions,meta);persistCurriculumDraft();renderAll();showView('preview');toast(`${count} soal dibuat dengan mode offline.`);
 }
 function renderQuestion(q,i){
   const letters='ABCDE';let opts='';
