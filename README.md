@@ -8,7 +8,8 @@ Generator asesmen SMP SSA Negeri Jenggrong Ranuyoso untuk membuat paket TKA dan 
 - Pilihan OpenAI GPT, Claude, Gemini, Auto Premium, serta Premium Max (generate + audit model kedua).
 - Generator offline sebagai fallback/preview (template/draf, tetap perlu telaah guru).
 - Paket hingga 100 soal melalui pemrosesan bertahap 10 soal per batch.
-- Validasi ketat untuk nomor, TP/materi, opsi duplikat, indeks kunci, jawaban, stimulus, pembahasan, dan pertanyaan berulang.
+- Validasi ketat untuk nomor, TP/materi, opsi duplikat, indeks kunci, jawaban, stimulus, pembahasan, dan butir dengan kombinasi stimulus-pertanyaan yang berulang.
+- Mode offline juga ditahan bila template menghasilkan butir berulang, agar sistem tidak mengeluarkan paket soal palsu berkualitas.
 - Mapel sekolah, kelas VII–IX, semester, fase, dan jenis ujian (TKA/STS/ASAS/ASAT/US/Try Out/Harian/Custom).
 - Satu materi atau multi-bab dengan distribusi jumlah soal untuk ujian satu semester.
 - CP/TP/indikator custom.
